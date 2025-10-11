@@ -1,0 +1,9 @@
+# jetbrains
+.idea/
+
+# macOS
+.DS_Store
+
+# virtual environment
+venv/
+env/
