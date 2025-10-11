@@ -123,6 +123,50 @@ class DataPreprocessor:
             lambda x: 1 if x > 0 else 0
         )
 
+        # 总体质量和面积的交互特征
+        self.all_data["OverallQual_TotalSF"] = (
+            self.all_data["OverallQual"] * self.all_data["TotalSF"]
+        )
+
+        # 地上居住面积质量比
+        self.all_data["QualArea"] = (
+            self.all_data["OverallQual"] * self.all_data["GrLivArea"]
+        )
+
+        # 车库面积质量比
+        self.all_data["GarageQualArea"] = (
+            self.all_data["GarageArea"] * self.all_data["GarageCars"]
+        )
+
+        # 是否新装修(5年内)
+        self.all_data["IsRecentRemod"] = (
+            (self.all_data["YrSold"] - self.all_data["YearRemodAdd"]) <= 5
+        ).astype(int)
+
+        # 地块面积与房屋面积比
+        self.all_data["LotAreaRatio"] = (
+            self.all_data["LotArea"] / self.all_data["TotalSF"]
+        )
+
+        # 房间密度(房间数/面积)
+        self.all_data["RoomDensity"] = self.all_data["TotRmsAbvGrd"] / (
+            self.all_data["GrLivArea"] + 1
+        )
+
+        # 是否有地下室
+        self.all_data["HasBsmt"] = (self.all_data["TotalBsmtSF"] > 0).astype(int)
+
+        # 是否有第二层
+        self.all_data["Has2ndFloor"] = (self.all_data["2ndFlrSF"] > 0).astype(int)
+
+        # 总门廊面积
+        self.all_data["TotalPorchSF"] = (
+            self.all_data["OpenPorchSF"]
+            + self.all_data["EnclosedPorch"]
+            + self.all_data["3SsnPorch"]
+            + self.all_data["ScreenPorch"]
+        )
+
         return self.all_data
 
     def encode_features(self):
