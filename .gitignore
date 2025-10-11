@@ -7,3 +7,6 @@
 # virtual environment
 venv/
 env/
+
+# python
+__pycache__/
