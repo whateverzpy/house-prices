@@ -17,29 +17,54 @@ class ModelTrainer:
         self.predictions = {}
 
     def init_models(self):
-        """初始化多个模型"""
+        """初始化优化后的模型"""
         self.models = {
-            "ridge": Ridge(alpha=10.0),
-            "lasso": Lasso(alpha=0.0005),
-            "elasticnet": ElasticNet(alpha=0.001, l1_ratio=0.5),
+            "ridge": Ridge(alpha=15.0, random_state=42),
+            "lasso": Lasso(alpha=0.0005, max_iter=10000, random_state=42),
+            "elasticnet": ElasticNet(alpha=0.001, l1_ratio=0.5, random_state=42),
             "rf": RandomForestRegressor(
-                n_estimators=200,
+                n_estimators=500,
                 max_depth=15,
                 min_samples_split=5,
+                min_samples_leaf=2,
+                max_features="sqrt",
                 random_state=42,
                 n_jobs=-1,
             ),
             "gbr": GradientBoostingRegressor(
-                n_estimators=300, learning_rate=0.05, max_depth=4, random_state=42
-            ),
-            "xgb": XGBRegressor(
-                n_estimators=300, learning_rate=0.05, max_depth=4, random_state=42
-            ),
-            "lgbm": LGBMRegressor(
-                n_estimators=300,
+                n_estimators=500,
                 learning_rate=0.05,
                 max_depth=4,
+                min_samples_split=5,
+                min_samples_leaf=2,
+                subsample=0.8,
                 random_state=42,
+            ),
+            "xgb": XGBRegressor(
+                n_estimators=1000,
+                learning_rate=0.03,
+                max_depth=4,
+                min_child_weight=3,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                gamma=0.1,
+                reg_alpha=0.1,
+                reg_lambda=1.0,
+                random_state=42,
+                n_jobs=-1,
+            ),
+            "lgbm": LGBMRegressor(
+                n_estimators=1000,
+                learning_rate=0.03,
+                max_depth=4,
+                num_leaves=20,
+                min_child_samples=20,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                reg_alpha=0.1,
+                reg_lambda=1.0,
+                random_state=42,
+                n_jobs=-1,
                 verbose=-1,
             ),
         }
@@ -56,7 +81,10 @@ class ModelTrainer:
                 model, X, y, scoring="neg_mean_squared_error", cv=kfold, n_jobs=-1
             )
             rmse_scores = np.sqrt(-cv_scores)
-            self.cv_scores[name] = {"mean": rmse_scores.mean(), "std": rmse_scores.std()}
+            self.cv_scores[name] = {
+                "mean": rmse_scores.mean(),
+                "std": rmse_scores.std(),
+            }
             print(
                 f"{name}: RMSE = {rmse_scores.mean():.4f} (+/- {rmse_scores.std():.4f})"
             )
