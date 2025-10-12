@@ -49,7 +49,8 @@ def main():
     trainer.predict(X_test)
 
     # 集成预测
-    ensemble_pred = trainer.ensemble_predict()
+    # ensemble_pred = trainer.ensemble_predict()
+    ensemble_pred = trainer.weighted_ensemble()
 
     # 保存结果
     print("\n" + "=" * 50)

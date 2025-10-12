@@ -49,19 +49,19 @@ class ModelTrainer:
     def cross_validate(self, X, y, n_folds=5):
         """交叉验证评估模型"""
         kfold = KFold(n_splits=n_folds, shuffle=True, random_state=42)
-        scores = {}
+        self.cv_scores = {}
 
         for name, model in self.models.items():
             cv_scores = cross_val_score(
                 model, X, y, scoring="neg_mean_squared_error", cv=kfold, n_jobs=-1
             )
             rmse_scores = np.sqrt(-cv_scores)
-            scores[name] = {"mean": rmse_scores.mean(), "std": rmse_scores.std()}
+            self.cv_scores[name] = {"mean": rmse_scores.mean(), "std": rmse_scores.std()}
             print(
                 f"{name}: RMSE = {rmse_scores.mean():.4f} (+/- {rmse_scores.std():.4f})"
             )
 
-        return scores
+        return self.cv_scores
 
     def train_models(self, X_train, y_train):
         """训练所有模型"""
@@ -70,6 +70,59 @@ class ModelTrainer:
             model.fit(X_train, y_train)
 
         return self.models
+
+    def train_stacking(self, X_train, y_train):
+        """使用Stacking集成"""
+        from sklearn.linear_model import Ridge
+        from sklearn.ensemble import StackingRegressor
+
+        # 基模型
+        base_models = [
+            ("ridge", self.models["ridge"]),
+            ("lasso", self.models["lasso"]),
+            ("rf", self.models["rf"]),
+            ("gbr", self.models["gbr"]),
+            ("xgb", self.models["xgb"]),
+            ("lgbm", self.models["lgbm"]),
+        ]
+
+        # 元模型
+        meta_model = Ridge(alpha=10.0)
+
+        # Stacking
+        stacking = StackingRegressor(
+            estimators=base_models, final_estimator=meta_model, cv=5
+        )
+
+        stacking.fit(X_train, y_train)
+        self.models["stacking"] = stacking
+
+        return stacking
+
+    def weighted_ensemble(self, weights=None):
+        """加权集成预测"""
+        if weights is None:
+            # 基于CV分数的权重
+            scores = [(name, score["mean"]) for name, score in self.cv_scores.items()]
+            scores = sorted(scores, key=lambda x: x[1])
+
+            # 转换为权重(分数越低,权重越高)
+            weights = {}
+            for name, score in scores:
+                weights[name] = 1.0 / (score + 1e-6)
+
+            # 归一化
+            total = sum(weights.values())
+            weights = {k: v / total for k, v in weights.items()}
+
+        # 加权平均
+        ensemble_pred = np.zeros_like(list(self.predictions.values())[0])
+        for name, pred in self.predictions.items():
+            if name in weights:
+                ensemble_pred += weights[name] * pred
+
+        print(f"\n加权集成权重: {weights}")
+        return ensemble_pred
 
     def predict(self, X_test):
         """使用训练好的模型进行预测"""
