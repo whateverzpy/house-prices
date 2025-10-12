@@ -42,15 +42,24 @@ def main():
     print("=" * 50)
     trainer.train_models(X_train, y_train)
 
+    # 训练Stacking模型
+    print("\nTraining Stacking model...")
+    trainer.train_stacking(X_train, y_train)
+
     # 预测
     print("\n" + "=" * 50)
     print("Step 4: Making Predictions")
     print("=" * 50)
     trainer.predict(X_test)
 
+    # 使用Stacking预测
+    stacking_pred = trainer.models["stacking"].predict(X_test)
+
     # 集成预测
     # ensemble_pred = trainer.ensemble_predict()
     ensemble_pred = trainer.weighted_ensemble()
+
+    final_pred = 0.5 * ensemble_pred + 0.5 * stacking_pred
 
     # 保存结果
     print("\n" + "=" * 50)
@@ -62,7 +71,7 @@ def main():
 
     # 创建提交文件
     submission = pd.DataFrame(
-        {"Id": test_ids, "SalePrice": np.expm1(ensemble_pred)}  # 反对数变换
+        {"Id": test_ids, "SalePrice": np.expm1(final_pred)}  # 反对数变换
     )
 
     submission.to_csv("../data/submission.csv", index=False)
